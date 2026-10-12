@@ -69,18 +69,24 @@
     .annual-section { margin-top: 28px; }
     .annual-section h2 { margin-bottom: 8px; }
     .annual-caption { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
-    .annual-wrap { overflow-x: auto; }
-    .annual-table { width: 100%; min-width: 760px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-    .annual-table th, .annual-table td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
-    .annual-table th:first-child, .annual-table td:first-child, .annual-table th:nth-child(2), .annual-table td:nth-child(2) { text-align: left; }
+    .annual-wrap { width: 100%; }
+    .annual-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .annual-table th, .annual-table td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+    .annual-table th:first-child, .annual-table td:first-child { text-align: left; }
     .annual-table thead th { color: var(--muted); font-size: 13px; font-weight: 600; }
     .annual-table tbody td { font-size: 14px; }
-    .annual-table td.shortfall { color: var(--bad); font-weight: 700; }
+    .annual-table td small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; }
+    .annual-table td small.shortfall { color: var(--bad); font-weight: 700; }
+    .annual-table tr.decline-start { background: color-mix(in srgb, var(--bad) 10%, transparent); }
+    .annual-table tr.decline-start td:first-child, .annual-table tr.decline-start td:last-child, .annual-table tr.decline-start td small.decline-note { color: var(--bad); font-weight: 700; }
     @media (max-width: 760px) {
       .layout { grid-template-columns: 1fr; }
       .page { width: min(100% - 24px, 600px); }
       .panel { padding: 18px; }
       header { margin-bottom: 24px; }
+      .annual-table th, .annual-table td { padding: 9px 5px; }
+      .annual-table tbody td { font-size: 12px; }
+      .annual-table thead th { font-size: 11px; }
     }
     @media (max-width: 400px) { .fields { grid-template-columns: 1fr; } }
   </style>
@@ -100,10 +106,13 @@
           <div class="fields">
             <label><span>目前可用资产 · 万元</span><input name="assets" type="number" inputmode="decimal" min="0" step="any" placeholder="填可支取的金融资产"></label>
             <label><span>现在每年可存 · 万元</span><input name="saving" type="number" inputmode="decimal" min="0" step="any" placeholder="填税后实际存下的金额"></label>
-            <label><span>距离完全退休 · 年</span><input name="wait" type="number" inputmode="numeric" min="0" max="50" step="1" placeholder="例如 5"></label>
-            <label><span>前期持续 · 年</span><input name="earlyYears" type="number" inputmode="numeric" min="0" max="80" step="1" value="10"></label>
+            <label><span>当前年龄 · 岁</span><input name="currentAge" type="number" inputmode="numeric" min="0" max="90" step="1" placeholder="例如 29"></label>
+            <label><span>希望完全退休 · 岁</span><input name="retirementAge" type="number" inputmode="numeric" min="0" max="90" step="1" placeholder="例如 35"></label>
           </div>
           <h3>退休后每年支出</h3>
+          <div class="fields">
+            <label><span>前期持续 · 年</span><input name="earlyYears" type="number" inputmode="numeric" min="0" max="80" step="1" value="10"></label>
+          </div>
           <p class="hint">单位：万元，按今天的购买力填写。前期和之后各填一列；不想细分可把总额填在“其他开销”。</p>
           <table class="expense-table">
             <thead><tr><th scope="col">分项</th><th scope="col">前期</th><th scope="col">之后</th></tr></thead>
@@ -125,7 +134,7 @@
               <label><span>退休后税费后年收益 · %</span><input name="postReturn" type="number" inputmode="decimal" min="-50" max="25" step="any" value="3"></label>
               <label><span>年通胀 · %</span><input name="inflation" type="number" inputmode="decimal" min="-5" max="20" step="any" value="2"></label>
               <label><span>每年储蓄增长 · %</span><input name="savingGrowth" type="number" inputmode="decimal" min="-20" max="30" step="any" value="0"></label>
-              <label><span>退休后规划 · 年</span><input name="horizon" type="number" inputmode="numeric" min="1" max="80" step="1" value="60"></label>
+              <label><span>规划至 · 岁</span><input name="endAge" type="number" inputmode="numeric" min="0" max="90" step="1" value="90"></label>
               <label><span>退休时另留备用金 · 万元</span><input name="reserve" type="number" inputmode="decimal" min="0" step="any" value="0"></label>
             </div>
           </details>
@@ -157,11 +166,11 @@
       </div>
       <section class="panel annual-section" aria-labelledby="annual-title">
         <h2 id="annual-title">逐年收支与余额</h2>
-        <p class="annual-caption">金额单位：万元。退休前“新增储蓄”已经扣除在职生活费。退休后没有劳动收入；第 1 年年初余额已扣除另留的备用金。“未覆盖”是当年计划支出中资产付不起的部分。</p>
+        <p class="annual-caption">金额单位：万元；年龄按年初计算，最多列到 90 岁。“储蓄＋收益”合并当年新增储蓄和投资收益。退休前新增储蓄已扣除在职生活费，退休后没有劳动收入；退休首年可用余额已扣除备用金。首次年末余额低于年初余额的年份标红。</p>
         <div class="annual-wrap">
           <table class="annual-table">
-            <thead><tr><th scope="col">从现在起</th><th scope="col">阶段</th><th scope="col">年初余额</th><th scope="col">新增储蓄</th><th scope="col">投资收益</th><th scope="col">计划支出</th><th scope="col">未覆盖</th><th scope="col">年末余额</th></tr></thead>
-            <tbody id="annual-body"><tr><td colspan="8">填写左侧数据后显示逐年结果。</td></tr></tbody>
+            <thead><tr><th scope="col">年龄</th><th scope="col">储蓄＋收益</th><th scope="col">支出</th><th scope="col">年末余额</th></tr></thead>
+            <tbody id="annual-body"><tr><td colspan="4">填写左侧数据后显示逐年结果。</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -169,7 +178,7 @@
   </div>
   <script>
   (() => {
-    const names = ['assets','saving','wait','earlyYears','preReturn','postReturn','inflation','savingGrowth','horizon','reserve'];
+    const names = ['assets','saving','currentAge','retirementAge','earlyYears','preReturn','postReturn','inflation','savingGrowth','endAge','reserve'];
     const inputs = Object.fromEntries(names.map(name => [name, document.querySelector('[name="' + name + '"]')]));
     const spendingInputs = {
       early: [...document.querySelectorAll('[data-phase="early"]')],
@@ -181,30 +190,52 @@
     function emptyTable() {
       const row = document.createElement('tr');
       const cell = document.createElement('td');
-      cell.colSpan = 8;
+      cell.colSpan = 4;
       cell.textContent = '填写左侧数据后显示逐年结果。';
       row.append(cell);
       byId('annual-body').replaceChildren(row);
     }
-    function annualRow(values) {
+    function annualRow(age, stage, saving, investment, spending, unpaid, balance, declineStart) {
       const row = document.createElement('tr');
-      values.forEach((value, index) => {
-        const cell = document.createElement('td');
-        cell.textContent = index < 2 ? value : formatNumber(value);
-        if (index === 6 && value > 0) cell.className = 'shortfall';
-        row.append(cell);
-      });
+      if (declineStart) row.className = 'decline-start';
+      const ageCell = document.createElement('td');
+      ageCell.textContent = age + ' 岁';
+      const stageNote = document.createElement('small');
+      stageNote.textContent = stage;
+      ageCell.append(stageNote);
+      const flowCell = document.createElement('td');
+      flowCell.textContent = formatNumber(saving + investment);
+      const spendingCell = document.createElement('td');
+      spendingCell.textContent = formatNumber(spending);
+      if (unpaid > 0) {
+        const unpaidNote = document.createElement('small');
+        unpaidNote.className = 'shortfall';
+        unpaidNote.textContent = '未覆盖 ' + formatNumber(unpaid);
+        spendingCell.append(unpaidNote);
+      }
+      const balanceCell = document.createElement('td');
+      balanceCell.textContent = formatNumber(balance);
+      if (declineStart) {
+        const declineNote = document.createElement('small');
+        declineNote.className = 'decline-note';
+        declineNote.textContent = '开始下降';
+        balanceCell.append(declineNote);
+      }
+      row.append(ageCell, flowCell, spendingCell, balanceCell);
       return row;
     }
     function fillTable(p, pre, post, inflation, savingGrowth) {
       const rows = document.createDocumentFragment();
       let balance = p.assets;
+      let declineMarked = false;
       for (let year = 0; year < p.wait; year++) {
         const opening = balance;
         const investment = opening * pre;
         const saving = p.saving * Math.pow(1 + savingGrowth, year);
         balance = opening + investment + saving;
-        rows.append(annualRow(['第 ' + (year + 1) + ' 年', '退休前', opening, saving, investment, 0, 0, balance]));
+        const declineStart = !declineMarked && balance < opening - 1e-8;
+        if (declineStart) declineMarked = true;
+        rows.append(annualRow(p.currentAge + year, '退休前', saving, investment, 0, 0, balance, declineStart));
       }
       balance = Math.max(0, balance - p.reserve);
       for (let year = 0; year < p.horizon; year++) {
@@ -214,7 +245,9 @@
         const afterSpending = Math.max(0, opening - spending);
         const investment = afterSpending * post;
         balance = afterSpending + investment;
-        rows.append(annualRow(['第 ' + (p.wait + year + 1) + ' 年', '退休第 ' + (year + 1) + ' 年', opening, 0, investment, spending, unpaid, balance]));
+        const declineStart = !declineMarked && balance < opening - 1e-8;
+        if (declineStart) declineMarked = true;
+        rows.append(annualRow(p.retirementAge + year, '退休第 ' + (year + 1) + ' 年', 0, investment, spending, unpaid, balance, declineStart));
       }
       byId('annual-body').replaceChildren(rows);
     }
@@ -235,18 +268,20 @@
         const fields = spendingInputs[phase];
         byId(phase + '-total').textContent = fields.some(field => field.value !== '') && fields.every(field => field.value === '' || field.checkValidity()) ? format(spending[phase]) : '—';
       }
-      const requiredInputs = ['assets','saving','wait','earlyYears'];
+      const requiredInputs = ['assets','saving','currentAge','retirementAge','earlyYears'];
       const earlyRequired = inputs.earlyYears.value !== '' && Number(inputs.earlyYears.value) > 0;
-      const laterRequired = inputs.earlyYears.value !== '' && Number(inputs.earlyYears.value) < Number(inputs.horizon.value);
+      const laterRequired = inputs.earlyYears.value !== '' && Number(inputs.earlyYears.value) < Number(inputs.endAge.value) - Number(inputs.retirementAge.value) + 1;
       if (requiredInputs.some(name => inputs[name].value === '') || (earlyRequired && spendingInputs.early.every(field => field.value === '')) || (laterRequired && spendingInputs.later.every(field => field.value === ''))) {
         clear('填完左侧金额后，这里显示结果。', false);
         return;
       }
       const p = Object.fromEntries(names.map(name => [name, inputs[name].value === '' ? NaN : Number(inputs[name].value)]));
+      p.wait = p.retirementAge - p.currentAge;
+      p.horizon = p.endAge - p.retirementAge + 1;
       p.earlySpend = spending.early;
       p.laterSpend = spending.later;
-      if (names.some(name => !Number.isFinite(p[name]) || !inputs[name].checkValidity()) || Object.values(spendingInputs).flat().some(field => field.value !== '' && !field.checkValidity()) || p.earlyYears > p.horizon) {
-        clear('请填写有效数值，且前期年数不要超过退休后规划年数。', true);
+      if (names.some(name => !Number.isFinite(p[name]) || !inputs[name].checkValidity()) || Object.values(spendingInputs).flat().some(field => field.value !== '' && !field.checkValidity()) || p.wait < 0 || p.horizon < 1 || p.earlyYears > p.horizon) {
+        clear('请填写有效数值。退休年龄不能小于当前年龄，规划终点不能早于退休年龄，前期年数不能超过退休后规划年数。', true);
         return;
       }
       byId('error').hidden = true;
